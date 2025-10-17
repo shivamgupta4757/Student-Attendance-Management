@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🎓 Student Attendance Manager</title>
+  <style>
+    :root {
+      --bg: #f4f7fa;
+      --text: #333;
+      --card: #fff;
+      --accent: #4caf50;
+      --absent: #e74c3c;
+      --border: #ddd;
+    }
+
+    body.dark {
+      --bg: #1e1e1e;
+      --text: #eee;
+      --card: #2a2a2a;
+      --accent: #81c784;
+      --absent: #ef5350;
+      --border: #444;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: "Poppins", sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      transition: background 0.4s, color 0.4s;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 30px;
+    }
+
+    .container {
+      width: 90%;
+      max-width: 900px;
+      background: var(--card);
+      padding: 25px;
+      border-radius: 16px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    header h2 {
+      margin: 0;
+    }
+
+    .toggle-mode {
+      background: none;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+      color: var(--text);
+      transition: 0.3s;
+    }
+
+    .filter-section {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+
+    input, select, button {
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 15px;
+      outline: none;
+      transition: 0.3s;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--accent);
+    }
+
+    button {
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+    }
+
+    button:hover {
+      opacity: 0.9;
+      transform: scale(1.02);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+
+    th, td {
+      border: 1px solid var(--border);
+      padding: 10px;
+      text-align: center;
+    }
+
+    th {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .present {
+      background-color: rgba(76, 175, 80, 0.15);
+      color: var(--accent);
+      font-weight: bold;
+    }
+
+    .absent {
+      background-color: rgba(231, 76, 60, 0.15);
+      color: var(--absent);
+      font-weight: bold;
+    }
+
+    .reset-btn {
+      background: var(--absent);
+      margin-top: 15px;
+    }
+
+    @media (max-width: 600px) {
+      th, td {
+        font-size: 13px;
+        padding: 6px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h2>📋 Student Attendance System</h2>
+      <button class="toggle-mode" onclick="toggleMode()">🌙</button>
+    </header>
+
+    <div class="filter-section">
+      <input type="text" id="searchInput" placeholder="🔍 Search by name or course..." oninput="filterStudents()" />
+      <button onclick="markAll('Present')">Mark All Present</button>
+      <button onclick="markAll('Absent')">Mark All Absent</button>
+      <button class="reset-btn" onclick="resetAttendance()">Reset</button>
+    </div>
+
+    <table id="attendanceTable">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Course</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="studentList"></tbody>
+    </table>
+
+    <h3 style="margin-top:20px;">📅 Attendance Records</h3>
+    <table id="recordTable">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="recordList"></tbody>
+    </table>
+  </div>
+
+  <script>
+    const students = [
+      { id: 1, name: "Shivam Kumar", course: "B.Tech CSE" },
+      { id: 2, name: "Muskan Kumari", course: "B.Sc Biology" },
+      { id: 3, name: "Manoj Gupta", course: "B.Com" },
+      { id: 4, name: "Aarav Sharma", course: "BBA" },
+    ];
+
+    let attendance = JSON.parse(localStorage.getItem("attendance")) || {};
+
+    function renderStudents() {
+      const list = document.getElementById("studentList");
+      list.innerHTML = "";
+      students.forEach((s) => {
+        const status = attendance[s.id]?.status || "Not Marked";
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${s.id}</td>
+          <td>${s.name}</td>
+          <td>${s.course}</td>
+          <td class="${status === 'Present' ? 'present' : status === 'Absent' ? 'absent' : ''}">${status}</td>
+          <td>
+            <button onclick="markAttendance(${s.id}, 'Present')">Present</button>
+            <button onclick="markAttendance(${s.id}, 'Absent')" style="background: var(--absent)">Absent</button>
+          </td>`;
+        list.appendChild(row);
+      });
+    }
+
+    function markAttendance(id, status) {
+      const today = new Date().toLocaleDateString();
+      attendance[id] = { status, date: today };
+      localStorage.setItem("attendance", JSON.stringify(attendance));
+      renderStudents();
+      renderRecords();
+    }
+
+    function markAll(status) {
+      students.forEach((s) => markAttendance(s.id, status));
+    }
+
+    function renderRecords() {
+      const recordList = document.getElementById("recordList");
+      recordList.innerHTML = "";
+      Object.keys(attendance).forEach((id) => {
+        const record = attendance[id];
+        const student = students.find((s) => s.id == id);
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${record.date}</td>
+          <td>${student.id}</td>
+          <td>${student.name}</td>
+          <td class="${record.status === 'Present' ? 'present' : 'absent'}">${record.status}</td>
+        `;
+        recordList.appendChild(row);
+      });
+    }
+
+    function filterStudents() {
+      const search = document.getElementById("searchInput").value.toLowerCase();
+      document.querySelectorAll("#studentList tr").forEach((row) => {
+        row.style.display = row.textContent.toLowerCase().includes(search) ? "" : "none";
+      });
+    }
+
+    function resetAttendance() {
+      localStorage.removeItem("attendance");
+      attendance = {};
+      renderStudents();
+      renderRecords();
+    }
+
+    function toggleMode() {
+      document.body.classList.toggle("dark");
+      const btn = document.querySelector(".toggle-mode");
+      btn.textContent = document.body.classList.contains("dark") ? "☀️" : "🌙";
+    }
+
+    renderStudents();
+    renderRecords();
+  </script>
+</body>
+</html>
